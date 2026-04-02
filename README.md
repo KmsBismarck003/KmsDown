@@ -1,10 +1,10 @@
-# KmsDown // SISTEMA UNITARIO DE DESCARGAS 
+# KmsDown // SISTEMA UNITARIO DE DESCARGAS
 
 <div align="center">
   <img src="static/003.png" alt="Logotipo KmsDown" width="150" height="auto">
 </div>
 
-**KmsDown** es un manejador de descargas autónomo y avanzado construido en Python (Flask) diseñado originalmente para evadir el ciclo de interacción manual al descargar carpetas o directorios pesados desde MediaFire. A través de una inferfaz local de estética *NieR-Automata / Cyber-minimalista*, proporciona recolección automatizada, control inteligente de re-descargas y un sistema de colas totalmente auditable. 
+**KmsDown** es un manejador de descargas autónomo y avanzado construido en Python (Flask) diseñado originalmente para evadir el ciclo de interacción manual al descargar carpetas o directorios pesados desde MediaFire. A través de una inferfaz local de estética *NieR-Automata / Cyber-minimalista*, proporciona recolección automatizada, control inteligente de re-descargas y un sistema de colas totalmente auditable.
 
 *Creado y diseñado estratégicamente por [KmsBismarck003](https://github.com/KmsBismarck003).*
 
