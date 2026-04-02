@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SISTEMA UNITARIO // DESCARGAS</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <link href="https://fonts.googleapis.com/css2?family=Jura:wght@400;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+
+    <!-- SIDEBAR MENU -->
+    <nav class="sidebar">
+        <div class="sidebar-header" style="text-align: center;">
+            <img src="{{ url_for('static', filename='003.png') }}" alt="Logo" style="width: 80px; height: auto; margin-bottom: 20px; opacity: 0.9;">
+            <h2>SISTEMA // <span>01</span></h2>
+            <div class="divider" style="margin: 15px auto;"></div>
+        </div>
+        <ul class="menu-list">
+            <li class="menu-item active" data-target="m-descarga">DESCARGAS_MULT</li>
+            <li class="menu-item" data-target="m-favoritos">ENLACES_GUARDADOS</li>
+            <li class="menu-item" data-target="m-carpetas">CARPETAS_LOCALES</li>
+            <li class="menu-item" data-target="m-historial">HISTORIAL_ACTIVIDAD</li>
+            <li class="menu-item" data-target="m-config">CONFIGURACION_SISTEMA</li>
+        </ul>
+        <div class="sidebar-footer">
+            <p>CRÉDITOS // Bismarck003</p>
+        </div>
+    </nav>
+
+    <!-- MAIN CONTENT -->
+    <main class="content">
+
+        <!-- MODULE: DESCARGAS -->
+        <section id="m-descarga" class="module active-module">
+            <div class="module-header">
+                <h1>MODULO // DESCARGA MULTIPLE</h1>
+                <div class="glitch-line"></div>
+            </div>
+
+            <div class="panel">
+                <label for="url-input">ENTRADA_DATOS_URL:</label>
+                <div class="input-group">
+                    <input type="text" id="url-input" placeholder="INGRESE URL DE MEDIADIRE O GENÉRICO [YT, MEGA, ETC]">
+                    <button id="btn-scan" class="btn">ESCANEAR_ENLACE</button>
+                    <button id="btn-save-link" class="btn btn-alt">GUARDAR</button>
+                </div>
+            </div>
+
+            <!-- NEW SCAN RESULTS PANEL -->
+            <div id="scan-results-panel" class="panel" style="display: none;">
+                <h3 style="margin-bottom: 10px;">RESULTADO_ESCANEO //</h3>
+                <p id="scan-info" style="margin-bottom: 10px; font-weight: 600;"></p>
+
+                <div id="scan-files-container" style="max-height: 200px; overflow-y: auto; border: 1px solid var(--accent); padding: 10px; margin-bottom: 15px; background: rgba(0,0,0,0.05); display: none;"></div>
+
+                <div class="form-group">
+                    <label>NOMBRE_SUBCARPETA_DESTINO:</label>
+                    <input type="text" id="target-folder-input" placeholder="Carpeta donde se guardará (Se auto-rellena)">
+                </div>
+
+                <div class="input-group">
+                    <button id="btn-start" class="btn">Confirmar: INICIAR_DESCARGA</button>
+                    <button id="btn-repair" class="btn btn-alt">Confirmar: REPARAR_DESCARGA</button>
+                </div>
+                <p class="help-text">* Si ya hay archivos en esa carpeta, "Iniciar" descartará los completados. "Reparar" re-verifica tamaños vs servidor.</p>
+            </div>
+
+            <div class="panel status-panel">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                    <h3>ESTADO GLOBAL // <span id="s-status">INACTIVO</span></h3>
+                    <div>
+                        <button id="btn-pause" class="btn btn-alt" style="padding: 5px 15px; font-size: 0.8rem; display: none;">PAUSAR_TODO</button>
+                    </div>
+                </div>
+                <p id="s-message">Esperando entrada de datos...</p>
+
+                <div class="progress-box">
+                    <div class="progress-info">
+                        <span id="s-count">[0 / 0] Archivos</span>
+                    </div>
+                    <div class="progress-bar-container">
+                        <div class="progress-bar" id="s-progress"></div>
+                    </div>
+                </div>
+
+                <div style="margin-top: 25px; margin-bottom: 10px; border-bottom: 1px solid var(--accent); padding-bottom: 5px; font-weight: 700; font-size: 0.9rem;">COLA_DE_DESCARGAS //</div>
+                <div id="queue-list" style="display: flex; flex-direction: column; gap: 10px; max-height: 300px; overflow-y: auto; padding-right: 10px;">
+                    <!-- JS renders queue items here -->
+                </div>
+            </div>
+        </section>
+
+        <!-- MODULE: FAVORITOS -->
+        <section id="m-favoritos" class="module">
+            <div class="module-header">
+                <h1>ENLACES GUARDADOS <span class="glitch-line"></span></h1>
+                <p>Gestiona tus endpoints y enlaces de uso recurrente.</p>
+            </div>
+            <div class="panel">
+                <h3>REFERENCIAS COMPILADAS //</h3>
+                <ul id="bm-list" class="data-list">
+                    <li>Cargando base de datos...</li>
+                </ul>
+            </div>
+        </section>
+
+        <!-- MODULE: CARPETAS -->
+        <section id="m-carpetas" class="module">
+            <div class="module-header">
+                <h1>MODULO // CARPETAS LOCALES</h1>
+                <div class="glitch-line"></div>
+            </div>
+            <div class="panel">
+                <p>Ubicaciones de almacenamiento local actual:</p>
+                <button id="btn-refresh-folders" class="btn">ACTUALIZAR_LISTA</button>
+                <ul id="folder-list" class="data-list">
+                    <!-- populated via js -->
+                </ul>
+            </div>
+        </section>
+
+        <!-- MODULE: HISTORIAL -->
+        <section id="m-historial" class="module">
+            <div class="module-header">
+                <h1>MODULO // HISTORIAL ACTIVIDAD</h1>
+                <div class="glitch-line"></div>
+            </div>
+            <div class="panel">
+                <button id="btn-refresh-history" class="btn">ACTUALIZAR_REGISTROS</button>
+                <table class="data-table" id="history-table">
+                    <thead>
+                        <tr>
+                            <th>FECHA</th>
+                            <th>NOMBRE</th>
+                            <th>ESTADO</th>
+                            <th>ACCION</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <!-- populated via js -->
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <!-- MODULE: CONFIGURACION -->
+        <section id="m-config" class="module">
+            <div class="module-header">
+                <h1>MODULO // CONFIGURACION SISTEMA</h1>
+                <div class="glitch-line"></div>
+            </div>
+            <div class="panel">
+                <div class="form-group">
+                    <label>RUTA_DESTINO:</label>
+                    <input type="text" id="cfg-dest" placeholder="Ej. ./Descargas_Automatas">
+                </div>
+                <div class="form-group">
+                    <label>LÍMITE_VELOCIDAD (Ignorado temporalmente):</label>
+                    <input type="text" id="cfg-speed" placeholder="0 para ilimitado">
+                </div>
+                <div class="form-group">
+                    <label>IDIOMA_PREFERIDO:</label>
+                    <select id="cfg-lang">
+                        <option value="es">ESPAÑOL</option>
+                        <option value="en">INGLES</option>
+                    </select>
+                </div>
+                <button id="btn-save-cfg" class="btn">GUARDAR_PARÁMETROS</button>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- FLOATING UI -->
+    <button id="theme-btn" class="btn">[ TEMA_VISUAL ]</button>
+    <button id="help-btn" class="btn btn-alt">[ MANUAL_USO ]</button>
+    
+    <div id="toast-container"></div>
+    
+    <div id="modal-welcome" class="modal-overlay">
+        <div class="modal">
+            <h2>INICIO // SISTEMA UNITARIO</h2>
+            <p><strong>Bienvenido operador.</strong> Se ha establecido conexión con el manejador virtual de descargas.</p>
+            <p>Con este sistema puedes extraer directorios enteros evadiendo los límites convencionales de descarga. Utiliza las casillas de selección, guarda tus links favoritos y emplea la función Reparar para regenerar paquetes caídos.</p>
+            <div style="text-align: right; margin-top:20px;">
+                <button class="btn close-modal">ENTENDIDO</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="modal-tutorial" class="modal-overlay">
+        <div class="modal">
+            <h2>MANUAL DE OPERACIÓN //</h2>
+            <p>1. <strong>Escanear:</strong> Pega tu link y el sistema enumerará los bloques de datos listos para extracción.</p>
+            <p>2. <strong>Selección Fina:</strong> Destilda los checkbox de los paquetes que decidas omitir para optimizar caché local.</p>
+            <p>3. <strong>Pausa Individual:</strong> Ahora puedes congelar temporalmente un paquete usando [PAUS.] y continuarlo con [REAN.].</p>
+            <p>4. <strong>Autosave:</strong> Toca GUARDAR a un lado de escanear para salvar en local el link activo.</p>
+            <div style="text-align: right; margin-top:20px;">
+                <button class="btn btn-alt close-modal">CERRAR</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="{{ url_for('static', filename='script.js') }}"></script>
+</body>
+</html>
