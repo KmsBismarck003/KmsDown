@@ -68,6 +68,7 @@ document.addEventListener("DOMContentLoaded", () => {
     const sCount = document.getElementById("s-count");
     const sProgress = document.getElementById("s-progress");
     const btnPauseGlob = document.getElementById("btn-pause");
+    const btnCancelGlob = document.getElementById("btn-cancel-all");
     const queueList = document.getElementById("queue-list");
 
     let currentScannedFiles = [];
@@ -91,6 +92,17 @@ document.addEventListener("DOMContentLoaded", () => {
         });
     });
 
+    btnCancelGlob.addEventListener("click", () => {
+        if(confirm("¿Estás seguro de que quieres omitir todas las descargas pendientes?")) {
+            const checkboxes = document.querySelectorAll(".cancel-file-btn");
+            checkboxes.forEach(btn => {
+                const idx = parseInt(btn.getAttribute("data-idx"));
+                fetch("/api/action", { method: "POST", headers: {"Content-Type": "application/json"}, body: JSON.stringify({ action: "cancel_file", index: idx }) });
+            });
+            showToast("SISTEMA: Omitiendo descargas pendientes...");
+        }
+    });
+
     btnScan.addEventListener("click", () => {
         const url = urlInput.value.trim();
         if(!url) return showToast("REQUERIDO: Ingrese una URL.");
@@ -99,7 +111,7 @@ document.addEventListener("DOMContentLoaded", () => {
         .then(res => res.json())
         .then(data => {
             btnScan.innerText = "ESCANEAR_ENLACE";
-            if(data.error) return showToast("ERROR: " + data.error);
+            if(data.error) return showToast(data.error);
 
             scanPanel.style.display = "block";
             folderInput.value = data.folder_name;
@@ -148,7 +160,8 @@ document.addEventListener("DOMContentLoaded", () => {
         
         fetch("/api/start", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ url, repair_mode: repairMode, target_folder: targetFolder, files: filesToDownload }) })
         .then(res => res.json()).then(data => {
-            if(data.error) showToast("ERROR: " + data.error);
+            if(data.error) showToast(data.error);
+            else if(data.queued) showToast(`SISTEMA: ENLACE AÑADIDO A LA COLA. (${data.queue_length} en espera)`);
             else showToast("SECUENCIA INICIADA.");
         });
     }
@@ -192,7 +205,11 @@ document.addEventListener("DOMContentLoaded", () => {
             sMessage.innerText = data.message;
             isPausedGlob = data.global_pause;
             btnPauseGlob.innerText = isPausedGlob ? "REANUDAR_TODO" : "PAUSAR_TODO";
-            btnPauseGlob.style.display = (data.status === "Descargando" || data.status === "Pausado") ? "inline-block" : "none";
+            
+            let isDownloading = (data.status === "Descargando" || data.status === "Pausado" || data.status === "Iniciador");
+            btnPauseGlob.style.display = isDownloading ? "inline-block" : "none";
+            btnCancelGlob.style.display = isDownloading ? "inline-block" : "none";
+            
             sCount.innerText = `[${data.current_index} / ${data.total_files}] Archivos`;
             sProgress.style.width = `${data.progress_percent || 0}%`;
 
@@ -232,6 +249,11 @@ document.addEventListener("DOMContentLoaded", () => {
                 </div>`;
             });
             queueList.innerHTML = html;
+        }).catch(err => {
+            sStatus.innerText = "DESCONECTADO";
+            sMessage.innerText = "Conexión perdida con el servidor local. Reinicia app.py.";
+            btnPauseGlob.style.display = "none";
+            btnCancelGlob.style.display = "none";
         });
     }, 1000);
 

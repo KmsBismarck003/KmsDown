@@ -86,14 +86,17 @@ def process_download_queue(url, repair_mode=False, target_subfolder=None, pre_sc
         if not os.path.exists(target_dir):
             os.makedirs(target_dir)
 
-        if "mediafire.com/folder/" in url:
-            downloader = MediaFireDownloader()
+        if "mediafire.com/folder/" in url or "fireload.com/" in url:
+            downloader = None
+            if "mediafire.com/folder/" in url:
+                downloader = MediaFireDownloader()
+                
             STATE["status"] = "Descargando"
             files = pre_scanned_files if pre_scanned_files else []
             
             if not files:
                 STATE["status"] = "Error"
-                STATE["message"] = "No se recibieron archivos para procesar."
+                STATE["message"] = "No se encontraron archivos en este enlace. Revisa que la URL sea correcta."
                 return
 
             STATE["total_files"] = len(files)
@@ -145,11 +148,25 @@ def process_download_queue(url, repair_mode=False, target_subfolder=None, pre_sc
                             os.remove(path)
 
                 if need_download:
-                    direct_link = downloader.get_direct_link(file_page_url)
+                    if "fireload.com/" in url:
+                        raw_url = file_obj.get('url')
+                        direct_link = None
+                        if raw_url:
+                            try:
+                                from fireload_extractor import get_direct_download_link
+                                direct_link = get_direct_download_link(raw_url)
+                                if direct_link:
+                                    req = requests.get(direct_link, stream=True, headers={'User-Agent': 'Mozilla/5.0'}, timeout=30)
+                            except Exception as e:
+                                direct_link = None
+                    else:
+                        direct_link = downloader.get_direct_link(file_page_url)
+                        if direct_link:
+                            req = downloader.session.get(direct_link, stream=True)
+                            
                     if direct_link:
                         try:
                             # Begin streaming
-                            req = downloader.session.get(direct_link, stream=True)
                             total_s = int(req.headers.get('content-length', expected_size))
                             downloaded = 0
                             
@@ -203,8 +220,9 @@ def process_download_queue(url, repair_mode=False, target_subfolder=None, pre_sc
                                 STATE["files_tracking"][i]["speed"] = 0
 
                         except Exception as e:
-                            STATE["files_tracking"][i]["status"] = f"Error: {str(e)}"
+                            STATE["files_tracking"][i]["status"] = "Error de red. Pasando al siguiente."
                             STATE["files_tracking"][i]["speed"] = 0
+                            STATE["files_tracking"][i]["progress"] = 0
                     else:
                         STATE["files_tracking"][i]["status"] = "Fallo de Enlace"
                 else:
@@ -254,7 +272,18 @@ def process_download_queue(url, repair_mode=False, target_subfolder=None, pre_sc
 
     except Exception as e:
         STATE["status"] = "Error"
-        STATE["message"] = f"Fallo: {str(e)}"
+        STATE["message"] = "Error inesperado. Por favor revisa tu conexión a internet o el enlace, e intenta de nuevo."
+
+MASTER_QUEUE = []
+
+def worker_loop():
+    while True:
+        if MASTER_QUEUE and STATE["status"] not in ["Descargando", "Escaneando", "Iniciador", "Pausado"]:
+            job = MASTER_QUEUE.pop(0)
+            process_download_queue(*job)
+        time.sleep(1)
+
+threading.Thread(target=worker_loop, daemon=True).start()
 
 # ================= FLASK ROUTES =================
 
@@ -303,6 +332,28 @@ def scan_url():
     url = data.get("url")
     if not url: return jsonify({"error": "Falta URL."}), 400
 
+    if "fireload.com/" in url:
+        try:
+            from fireload_extractor import extract_fireload_links
+            extracted = extract_fireload_links(url)
+            files = []
+            for f in extracted:
+                files.append({
+                    "filename": f["filename"],
+                    "quickkey": "fireload",
+                    "size": 0,
+                    "url": f["url"]
+                })
+            folder_name = "Fireload"
+            if "folder/" in url:
+                n_match = re.search(r'folder/[a-z0-9]+/([^?/]+)', url)
+                if n_match:
+                    import urllib.parse
+                    folder_name = urllib.parse.unquote(n_match.group(1).replace('+', ' ')).strip()
+            return jsonify({"is_mediafire": True, "folder_name": re.sub(r'[<>:"/\\|?*]', '_', folder_name), "files": files, "count": len(files)})
+        except Exception as e:
+            return jsonify({"error": "No se pudo extraer el enlace de Fireload. Verifica que sea válido."}), 500
+
     if "mediafire.com/folder/" in url:
         downloader = MediaFireDownloader()
         match = re.search(r'folder/([a-z0-9]+)', url)
@@ -327,7 +378,7 @@ def scan_url():
                 if resp.get('response', {}).get('folder_content', {}).get('more_chunks') == 'no': break
                 chunk += 1
             except Exception as e:
-                return jsonify({"error": f"Error API: {str(e)}"}), 500
+                return jsonify({"error": "No se pudo obtener información de MediaFire. Verifica que el enlace sea público y válido."}), 500
         
         return jsonify({"is_mediafire": True, "folder_name": folder_name, "files": files, "count": len(files)})
     else:
@@ -341,14 +392,13 @@ def start_download():
     target_folder = data.get("target_folder")
     files_list = data.get("files", [])
     
-    if STATE["status"] in ["Descargando", "Escaneando", "Iniciador", "Pausado"]:
-        return jsonify({"error": "Ya hay una descarga en progreso."}), 400
-
     if not url: return jsonify({"error": "Falta URL."}), 400
 
-    t = threading.Thread(target=process_download_queue, args=(url, repair, target_folder, files_list))
-    t.start()
-    return jsonify({"success": True})
+    job = (url, repair, target_folder, files_list)
+    MASTER_QUEUE.append(job)
+    
+    is_active = STATE["status"] in ["Descargando", "Escaneando", "Iniciador", "Pausado"]
+    return jsonify({"success": True, "queued": is_active, "queue_length": len(MASTER_QUEUE)})
 
 @app.route("/api/history", methods=["GET"])
 def get_history(): return jsonify(STATE["history"])

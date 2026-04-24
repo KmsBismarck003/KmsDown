@@ -67,10 +67,11 @@
             </div>
 
             <div class="panel status-panel">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; flex-wrap: wrap; gap: 10px;">
                     <h3>ESTADO GLOBAL // <span id="s-status">INACTIVO</span></h3>
-                    <div>
+                    <div style="display: flex; gap: 10px;" id="global-actions">
                         <button id="btn-pause" class="btn btn-alt" style="padding: 5px 15px; font-size: 0.8rem; display: none;">PAUSAR_TODO</button>
+                        <button id="btn-cancel-all" class="btn btn-alt" style="padding: 5px 15px; font-size: 0.8rem; display: none; border-color: #ff4444; color: #ff4444;">CANCELAR_TODO</button>
                     </div>
                 </div>
                 <p id="s-message">Esperando entrada de datos...</p>
